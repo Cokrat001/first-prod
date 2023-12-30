@@ -1,40 +1,49 @@
-import { HttpClient } from '@angular/common/http';
-import { Component, inject } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { AuthService } from "../../services/auth.service";
-import { Router } from '@angular/router';
-import { UserInterface} from "../../../shared/types/user.Interface";
+import {Component, OnInit} from "@angular/core";
+import {FormBuilder, FormGroup, ReactiveFormsModule, Validators} from "@angular/forms";
+import {Observable} from "rxjs";
+import {BackendErrorInterface} from "../../../shared/types/backendError.interface";
+import {select, Store} from "@ngrx/store";
+import {AppStateInterface} from "../../../shared/types/appState.interface";
+import {AuthService} from "../../services/auth.service";
+import {isSubmittingSelector, validationErrorsSelector} from "../../store/effects/selector";
+import {LoginRequestInterface} from "../../type/loginRequest.interface";
+import {loginAction} from "../../store/action/login.action";
+import {CommonModule} from "@angular/common";
+import {RouterLink, RouterLinkActive, RouterOutlet} from "@angular/router";
 
 @Component({
-  selector: 'app-login',
-  templateUrl: './login.component.html',
+  selector: "mc-login",
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [CommonModule, RouterLink, RouterOutlet, RouterLinkActive, ReactiveFormsModule],
+  templateUrl: "login.component.html"
 })
-export class LoginComponent {
-  fb = inject(FormBuilder);
-  http = inject(HttpClient);
-  authService = inject(AuthService);
-  router = inject(Router);
+export class LoginComponent implements OnInit{
+  form: FormGroup = new FormGroup({})
+  isSubmitting$: Observable<boolean> = new Observable<boolean>()
+  backendErrors$:Observable<BackendErrorInterface | null> = new Observable<BackendErrorInterface | null>()
 
-  form = this.fb.nonNullable.group({
-    email: ['', Validators.required],
-    password: ['', Validators.required],
-  });
+  constructor(private fb: FormBuilder, private store: Store<AppStateInterface>,private authService:AuthService) {}
 
+  ngOnInit() {
+    this.initializeForm()
+    this.initializeValues()
+  }
+  initializeValues():void{
+    this.isSubmitting$ = this.store.pipe(select(isSubmittingSelector))
+    this.backendErrors$ = this.store.pipe(select(validationErrorsSelector))
+  }
+
+  initializeForm(): void {
+    this.form = this.fb.group({
+      email: ['', Validators.required],
+      password: ['', Validators.required]
+    })
+  }
   onSubmit(): void {
-    this.http
-      .post<{ user: UserInterface }>(
-        'https://api.realworld.io/api/users/login',
-        {
-          user: this.form.getRawValue(),
-        }
-      )
-      .subscribe((response) => {
-        console.log('response', response);
-        localStorage.setItem('token', response.user.token);
-        this.authService.currentUserSig.set(response.user);
-        this.router.navigateByUrl('/');
-      });
+    console.log(this.form.value)
+    const request: LoginRequestInterface = {
+      user: this.form.value
+    }
+    this.store.dispatch(loginAction({request}))
   }
 }

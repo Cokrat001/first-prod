@@ -1,4 +1,4 @@
-<div *ngIf="authService.currentUserSig() === null">
+<div>
   <button routerLink="/login" class="bg-sky-500 hover:bg-sky-700 mr-3 ...">
     Login
   </button>
@@ -6,8 +6,5 @@
     Register
   </button>
 </div>
-<div *ngIf="authService.currentUserSig()">
-  {{ authService.currentUserSig()?.username }}
-  <span (click)="logout()">Logout</span>
-</div>
+
 <router-outlet></router-outlet>
